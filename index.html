@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desafío EDO: Recuperación de Bosque Urbano</title>
+    
+    <!-- Librería para gráficas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- LIBRERÍA MATHJAX PARA RENDERIZAR FÓRMULAS PROFESIONALES -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['\\(', '\\)']], // Para fórmulas dentro del párrafo
+                displayMath: [['\\[', '\\]']] // Para fórmulas centradas grandes
+            },
+            svg: {
+                fontCache: 'global'
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #27ae60; /* Verde naturaleza */
+            --heun-color: #f39c12;   /* Naranja */
+            --rk4-color: #3498db;    /* Azul */
+            --exact-color: #e74c3c;  /* Rojo oscuro */
+            --bg-light: #f8f9fa;
+            --text-dark: #333;
+            --border-radius: 8px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        }
+
+        h1, h2, h3 {
+            color: var(--primary-color);
+            margin-top: 0;
+        }
+
+        h1 { 
+            text-align: center; 
+            border-bottom: 3px solid var(--accent-color); 
+            padding-bottom: 15px; 
+            font-size: 2rem;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            border-left: 5px solid var(--accent-color);
+            padding-left: 15px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+        }
+
+        p {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+
+        /* Estilos específicos para bloques de fórmulas MathJax */
+        .math-block {
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            border-left: 4px solid var(--primary-color);
+            padding: 20px;
+            margin: 20px 0;
+            overflow-x: auto; /* Permite scroll si la fórmula es muy ancha */
+            text-align: center;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.02);
+        }
+
+        .math-inline {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        /* Controles de entrada */
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+            background: #fdfdfd;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            border: 1px solid #eee;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+            color: #555;
+        }
+
+        input[type="number"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus {
+            border-color: var(--accent-color);
+            outline: none;
+            box-shadow: 0 0 5px rgba(39, 174, 96, 0.3);
+        }
+
+        small {
+            color: #777;
+            font-size: 0.8em;
+            margin-top: 4px;
+        }
+
+        button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: transform 0.1s, background 0.3s;
+            width: 100%;
+            margin-top: 10px;
+            box-shadow: 0 4px 6px rgba(39, 174, 96, 0.2);
+        }
+
+        button:hover {
+            background-color: #219150;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        /* Tabla de resultados */
+        .table-container {
+            overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+            min-width: 800px; /* Asegura que no se aplaste demasiado */
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: right;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.85em;
+        }
+
+        tr:nth-child(even) { background-color: #f9fbfc; }
+        tr:hover { background-color: #f1f8f5; }
+        
+        .col-n { text-align: left; font-weight: bold; color: #555; }
+        .col-t { text-align: left; }
+        
+        .error-cell { 
+            color: #c0392b; 
+            font-weight: 600; 
+            font-family: monospace;
+        }
+        
+        .val-exact { color: var(--exact-color); font-weight: bold; }
+        .val-heun { color: var(--heun-color); font-weight: bold; }
+        .val-rk4 { color: var(--rk4-color); font-weight: bold; }
+
+        /* Gráfica */
+        .chart-wrapper {
+            position: relative;
+            height: 450px;
+            width: 100%;
+            margin-top: 20px;
+            background: #fff;
+            padding: 10px;
+            border-radius: var(--border-radius);
+            border: 1px solid #eee;
+        }
+
+        /* Leyenda personalizada */
+        .custom-legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+        }
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        /* Conclusión */
+        .conclusion-box {
+            background-color: #eef7f2;
+            border: 1px solid #a2d9ce;
+            padding: 25px;
+            border-radius: var(--border-radius);
+            margin-top: 30px;
+        }
+        .conclusion-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            display: block;
+        }
+        .highlight { 
+            font-weight: bold; 
+            color: var(--accent-color); 
+            background: rgba(39, 174, 96, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        /* Responsive básico */
+        @media (max-width: 768px) {
+            .container { padding: 20px; }
+            .controls-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Recuperación de Bosque Urbano tras Plaga</h1>
+    
+    <!-- A. PROBLEMA Y CONTEXTO -->
+    <section id="contexto">
+        <h2>a) Problema y Contexto</h2>
+        <p><strong>Comunidad beneficiaria:</strong> Vecinos organizados de un barrio periurbano.</p>
+        <p><strong>Situación:</strong> Tras una infestación de insectos plaga, la cobertura arbórea disminuyó drásticamente. La comunidad ha iniciado un programa de reforestación activa.</p>
+        <p><strong>Pregunta concreta:</strong> ¿Cuál será la cantidad proyectada de árboles vivos \( P(t) \) después de un periodo \( T \), considerando un crecimiento natural neto y aportaciones constantes de nueva plantación?</p>
+        <p><strong>Meta:</strong> Modelar la recuperación mediante una EDO de primer orden y validar la precisión numérica de los métodos de Heun y Runge-Kutta (RK4).</p>
+    </section>
+
+    <!-- B. MODELO MATEMÁTICO -->
+    <section id="modelo">
+        <h2>b) Modelo Matemático</h2>
+        <p>Definimos la variable dependiente \( P(t) \) como la población de árboles vivos en el tiempo \( t \) (en años).</p>
+        <p>La tasa de cambio de la población depende de dos factores:</p>
+        <ol>
+            <li>Crecimiento/supervivencia proporcional a la población actual (\( k \cdot P \)).</li>
+            <li>Nuevas plantas introducidas por la comunidad a un ritmo constante (\( A \)).</li>
+        </ol>
+        
+        <div class="math-block">
+            \[ \frac{dP}{dt} = k P(t) + A \]
+        </div>
+        
+        <p><strong>Condición Inicial:</strong></p>
+        <div class="math-block">
+            \[ P(0) = P_0 \]
+        </div>
+
+        <p><strong>Parámetros y Variables:</strong></p>
+        <ul style="list-style-type: square;">
+            <li>\( P(t) \): Cantidad de árboles vivos (unidad: árboles).</li>
+            <li>\( t \): Tiempo transcurrido (unidad: años).</li>
+            <li>\( P_0 \): Población inicial de árboles sobrevivientes.</li>
+            <li>\( k \): Tasa neta de crecimiento anual (si \( k > 0 \), hay supervivencia/reproducción neta).</li>
+            <li>\( A \): Tasa de plantación continua promedio (árboles/año).</li>
+        </ul>
+    </section>
+
+    <!-- C. SOLUCIÓN ANALÍTICA -->
+    <section id="analitica">
+        <h2>c) Solución Analítica Exacta</h2>
+        <p>Esta es una EDO lineal de primer orden con coeficientes constantes. Su solución general para \( k \neq 0 \) es:</p>
+        
+        <div class="math-block">
+            \[ P(t) = \left( P_0 + \frac{A}{k} \right) e^{kt} - \frac{A}{k} \]
+        </div>
+        
+        <p><strong>Verificación:</strong></p>
+        <p>Si sustituimos \( t=0 \), obtenemos \( P(0) = (P_0 + A/k)(1) - A/k = P_0 \), cumpliendo la condición inicial.</p>
+        <p>Al derivar respecto a \( t \), recuperamos la ecuación diferencial original.</p>
+    </section>
+
+    <!-- D. SIMULACIÓN NUMÉRICA CONTROLES -->
+    <section id="simulacion-controls">
+        <h2>d) Simulación Numérica (Heun & RK4)</h2>
+        <p>Ajusta los parámetros físicos del problema. El sistema calculará automáticamente el tamaño de paso \( h = \frac{T}{N} \).</p>
+        
+        <div class="controls-grid">
+            <div class="input-group">
+                <label for="p0">\( P_0 \) (Árboles iniciales)</label>
+                <input type="number" id="p0" value="10" step="1" min="0">
+            </div>
+            <div class="input-group">
+                <label for="k">\( k \) (Tasa anual)</label>
+                <input type="number" id="k" value="0.1" step="0.01" placeholder="ej. 0.1">
+                <small>Ej: 0.1 equivale al 10% anual</small>
+            </div>
+            <div class="input-group">
+                <label for="a">\( A \) (Plantación anual)</label>
+                <input type="number" id="a" value="5" step="1" min="0">
+                <small>Árboles nuevos por año</small>
+            </div>
+            <div class="input-group">
+                <label for="t_final">\( T \) (Horizonte temporal)</label>
+                <input type="number" id="t_final" value="5" step="1" min="1">
+                <small>Años totales de simulación</small>
+            </div>
+            <div class="input-group">
+                <label for="n_iter">\( N \) (Iteraciones / Pasos)</label>
+                <input type="number" id="n_iter" value="10" step="1" min="1">
+                <small>Define la resolución \( h \)</small>
+            </div>
+        </div>
+        <button onclick="runSimulation()">Ejecutar Simulación y Actualizar Resultados</button>
+    </section>
+
+    <!-- E. RESULTADOS VISUALES -->
+    <section id="resultados-visuales">
+        <h2>e) Comparación Gráfica</h2>
+        
+        <div class="custom-legend">
+            <div class="legend-item"><span class="dot" style="background:var(--exact-color)"></span> Solución Analítica (Exacta)</div>
+            <div class="legend-item"><span class="dot" style="background:var(--heun-color)"></span> Método de Heun (RK2)</div>
+            <div class="legend-item"><span class="dot" style="background:var(--rk4-color)"></span> Método RK4</div>
+        </div>
+
+        <div class="chart-wrapper">
+            <canvas id="myChart"></canvas>
+        </div>
+    </section>
+
+    <!-- TABLA DETALLADA -->
+    <section id="tabla-seccion">
+        <h2>Tabla de Errores y Valores Paso a Paso</h2>
+        <p>Se muestra la evolución iterativa. Los errores se calculan contra la solución analítica.</p>
+        <div class="table-container">
+            <table id="resultsTable">
+                <thead>
+                    <tr>
+                        <th class="col-n">n</th>
+                        <th class="col-t">t (años)</th>
+                        <th>P Exacta</th>
+                        <th>P Heun</th>
+                        <th>|Error| Heun</th>
+                        <th>% Error Rel. Heun</th>
+                        <th>P RK4</th>
+                        <th>|Error| RK4</th>
+                        <th>% Error Rel. RK4</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Filas generadas por JS -->
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- F. INTERPRETACIÓN Y CONCLUSIONES -->
+    <section id="interpretacion">
+        <h2>f) Interpretación y Conclusiones</h2>
+        <div class="conclusion-box" id="conclusion-text">
+            <p>Presiona "Ejecutar Simulación" para generar la interpretación automática basada en los datos ingresados.</p>
+        </div>
+    </section>
+
+</div>
+
+<script>
+    let chartInstance = null;
+
+    // Función auxiliar para formatear números con decimales fijos
+    function fmt(num, decimals = 4) {
+        if (isNaN(num)) return "-";
+        return Number(num).toFixed(decimals);
+    }
+
+    // Lógica principal de la simulación
+    function runSimulation() {
+        // 1. Obtener inputs
+        const P0 = parseFloat(document.getElementById('p0').value);
+        const k = parseFloat(document.getElementById('k').value);
+        const A = parseFloat(document.getElementById('a').value);
+        const T = parseFloat(document.getElementById('t_final').value);
+        const N = parseInt(document.getElementById('n_iter').value);
+
+        // Validaciones básicas
+        if (isNaN(P0) || isNaN(k) || isNaN(A) || isNaN(T) || isNaN(N)) {
+            alert("Por favor, ingresa valores numéricos válidos en todos los campos.");
+            return;
+        }
+        if (T <= 0 || N <= 0) {
+            alert("El tiempo T y las iteraciones N deben ser mayores que cero.");
+            return;
+        }
+        
+        // Manejo especial si k es casi 0 para evitar división por cero en la fórmula exacta
+        const isKZero = Math.abs(k) < 1e-9; 
+
+        // 2. Calcular h
+        const h = T / N;
+
+        // 3. Preparar arrays para datos
+        const labelsTime = [];       
+        const dataExact = [];        
+        const dataHeun = [];         
+        const dataRK4 = [];          
+        
+        // Arrays para la tabla
+        const tableRows = [];
+
+        // Estado inicial
+        let t_current = 0;
+        let p_heun_curr = P0;
+        let p_rk4_curr = P0;
+
+        // Definir la función f(t, P) = k*P + A
+        const f = (t, P) => k * P + A;
+
+        // Función de solución analítica exacta
+        const solveExact = (time) => {
+            if (isKZero) {
+                return P0 + A * time; 
+            }
+            return (P0 + A / k) * Math.exp(k * time) - (A / k);
+        };
+
+        // Loop de iteraciones desde n=0 hasta n=N
+        for (let i = 0; i <= N; i++) {
+            const t_val = i * h;
+            
+            // --- CÁLCULO EXACTO ---
+            const p_exact = solveExact(t_val);
+
+            // --- GUARDAR DATOS ACTUALES ---
+            const errAbsHeun = Math.abs(p_exact - p_heun_curr);
+            const errRelHeun = (p_exact !== 0) ? (errAbsHeun / Math.abs(p_exact)) * 100 : 0;
+            
+            const errAbsRK4 = Math.abs(p_exact - p_rk4_curr);
+            const errRelRK4 = (p_exact !== 0) ? (errAbsRK4 / Math.abs(p_exact)) * 100 : 0;
+
+            // Guardar fila de tabla
+            tableRows.push({
+                n: i,
+                t: t_val,
+                exact: p_exact,
+                heun: p_heun_curr,
+                errH_abs: errAbsHeun,
+                errH_rel: errRelHeun,
+                rk4: p_rk4_curr,
+                errR_abs: errAbsRK4,
+                errR_rel: errRelRK4
+            });
+
+            // Guardar para gráfica
+            labelsTime.push(fmt(t_val, 2));
+            dataExact.push(p_exact);
+            dataHeun.push(p_heun_curr);
+            dataRK4.push(p_rk4_curr);
+
+            // --- PREPARAR SIGUIENTE ITERACIÓN (si no estamos al final) ---
+            if (i < N) {
+                
+                // MÉTODO DE HEUN
+                const m1 = f(t_current, p_heun_curr);
+                const p_star = p_heun_curr + h * m1;
+                const m2 = f(t_current + h, p_star);
+                p_heun_curr = p_heun_curr + (h / 2) * (m1 + m2);
+
+                // MÉTODO RK4
+                const k1 = f(t_current, p_rk4_curr);
+                const k2 = f(t_current + h/2, p_rk4_curr + (h * k1) / 2);
+                const k3 = f(t_current + h/2, p_rk4_curr + (h * k2) / 2);
+                const k4 = f(t_current + h, p_rk4_curr + h * k3);
+                p_rk4_curr = p_rk4_curr + (h / 6) * (k1 + 2 * k2 + 2 * k3 + k4);
+
+                t_current += h;
+            }
+        }
+
+        // 4. Renderizar Tabla
+        renderTable(tableRows);
+
+        // 5. Renderizar Gráfica
+        renderChart(labelsTime, dataExact, dataHeun, dataRK4);
+
+        // 6. Generar Conclusión Automática (AHORA DINÁMICA CON LOS ÚLTIMOS VALORES)
+        generateConclusion(N, h, tableRows[tableRows.length-1], P0, k, A, T);
+    }
+
+    function renderTable(rows) {
+        const tbody = document.querySelector('#resultsTable tbody');
+        tbody.innerHTML = ''; 
+
+        rows.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="col-n">${row.n}</td>
+                <td class="col-t">${fmt(row.t, 3)}</td>
+                <td class="val-exact">${fmt(row.exact, 4)}</td>
+                <td class="val-heun">${fmt(row.heun, 4)}</td>
+                <td class="error-cell">${fmt(row.errH_abs, 6)}</td>
+                <td class="error-cell">${fmt(row.errH_rel, 4)}%</td>
+                <td class="val-rk4">${fmt(row.rk4, 4)}</td>
+                <td class="error-cell">${fmt(row.errR_abs, 6)}</td>
+                <td class="error-cell">${fmt(row.errR_rel, 4)}%</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderChart(labels, dExact, dHeun, dRK4) {
+        const ctx = document.getElementById('myChart').getContext('2d');
+        
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Solución Analítica (Exacta)',
+                        data: dExact,
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        fill: false,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Método de Heun (RK2)',
+                        data: dHeun,
+                        borderColor: '#f39c12',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#f39c12',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 1,
+                        fill: false,
+                        tension: 0
+                    },
+                    {
+                        label: 'Método RK4',
+                        data: dRK4,
+                        borderColor: '#3498db',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#3498db',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 1,
+                        fill: false,
+                        tension: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Tiempo t (años)',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        grid: { display: false }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Cantidad de Árboles Vivos P(t)',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        beginAtZero: true,
+                        grid: { color: '#f0f0f0' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += fmt(context.parsed.y, 4);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // FUNCIÓN MODIFICADA PARA QUE SEA TOTALMENTE DINÁMICA
+    function generateConclusion(N, h, lastRow, P0, k, A, T) {
+        const div = document.getElementById('conclusion-text');
+        
+        // Extraer valores finales para mostrarlos explícitamente
+        const pFinalExact = lastRow.exact;
+        const pFinalHeun = lastRow.heun;
+        const pFinalRK4 = lastRow.rk4;
+        const errHeunAbs = lastRow.errH_abs;
+        const errRK4Abs = lastRow.errR_abs;
+        const errHeunRel = lastRow.errH_rel;
+        const errRK4Rel = lastRow.errR_rel;
+
+        // Determinar cuál método fue más preciso en ESTE cálculo específico
+        let winnerText = "";
+        let analysisText = "";
+
+        if (errHeunAbs > errRK4Abs) {
+            winnerText = "<strong>RK4</strong>";
+            analysisText = "Como era de esperar teóricamente, el método Runge-Kutta de orden 4 presentó un error menor debido a su mayor orden de convergencia.";
+        } else if (errRK4Abs > errHeunAbs) {
+            winnerText = "<strong>Heun</strong>";
+            analysisText = "En este escenario particular con pocos pasos, Heun mostró una precisión comparable o ligeramente superior, aunque esto suele invertirse al refinar la malla (aumentar N).";
+        } else {
+            winnerText = "Empate técnico";
+            analysisText = "Los errores fueron numéricamente indistinguibles en esta resolución.";
+        }
+
+        // Construcción del HTML dinámico
+        const htmlContent = `
+            <span class="conclusion-title">Análisis Dinámico de Resultados (Inciso f)</span>
+            
+            <p><strong>Escenario Simulado:</strong></p>
+            <ul>
+                <li>Inicial: \( P_0 = ${P0} \) árboles.</li>
+                <li>Tasa de crecimiento: \( k = ${k} \) (\( ${(k*100).toFixed(1)}\% \) anual).</li>
+                <li>Aporte constante: \( A = ${A} \) árboles/año.</li>
+                <li>Duración: \( T = ${T} \) años.</li>
+                <li>Resolución numérica: \( N = ${N} \) pasos, tamaño de paso \( h = ${fmt(h, 4)} \) años.</li>
+            </ul>
+
+            <p><strong>Resultados Finales en \( t = ${T} \):</strong></p>
+            <table style="width:100%; border-collapse:collapse; margin:10px 0; font-size:0.9em;">
+                <tr style="background:#eee;">
+                    <th style="padding:5px; text-align:left;">Método</th>
+                    <th style="padding:5px; text-align:right;">Valor Estimado</th>
+                    <th style="padding:5px; text-align:right;">Error Absoluto</th>
+                    <th style="padding:5px; text-align:right;">Error Relativo (%)</th>
+                </tr>
+                <tr>
+                    <td style="padding:5px;"><span style="color:var(--exact-color)">Analítico (Real)</span></td>
+                    <td style="padding:5px; text-align:right; font-weight:bold;">${fmt(pFinalExact, 4)}</td>
+                    <td style="padding:5px; text-align:right;">-</td>
+                    <td style="padding:5px; text-align:right;">-</td>
+                </tr>
+                <tr>
+                    <td style="padding:5px;"><span style="color:var(--heun-color)">Heun (RK2)</span></td>
+                    <td style="padding:5px; text-align:right;">${fmt(pFinalHeun, 4)}</td>
+                    <td style="padding:5px; text-align:right;" class="error-cell">${fmt(errHeunAbs, 6)}</td>
+                    <td style="padding:5px; text-align:right;" class="error-cell">${fmt(errHeunRel, 4)}%</td>
+                </tr>
+                <tr>
+                    <td style="padding:5px;"><span style="color:var(--rk4-color)">Runge-Kutta 4</span></td>
+                    <td style="padding:5px; text-align:right;">${fmt(pFinalRK4, 4)}</td>
+                    <td style="padding:5px; text-align:right;" class="error-cell">${fmt(errRK4Abs, 6)}</td>
+                    <td style="padding:5px; text-align:right;" class="error-cell">${fmt(errRK4Rel, 4)}%</td>
+                </tr>
+            </table>
+
+            <p><strong>Conclusión Técnica:</strong> El método ganador en precisión para estos parámetros fue ${winnerText}. ${analysisText}</p>
+
+            <p><strong>Interpretación Comunitaria:</strong> Bajo estas condiciones, la comunidad puede proyectar que el bosque urbano alcanzará aproximadamente <span class="highlight">${fmt(pFinalExact, 0)} árboles vivos</span> al cabo de ${T} años. Si el objetivo es superar una meta específica, este modelo permite ajustar \( A \) (más plantaciones) o extender \( T \) para garantizar la recuperación ecológica deseada.</p>
+        `;
+        
+        div.innerHTML = htmlContent;
+        
+        // Importante: Re-renderizar MathJax para las fórmulas recién insertadas en el div dinámico
+        if (window.MathJax && MathJax.typesetPromise) {
+            MathJax.typesetPromise([div]).catch((err) => console.log('MathJax error:', err.message));
+        }
+    }
+
+    // Ejecutar una vez al cargar
+    window.onload = () => {
+        runSimulation();
+    };
+</script>
+
+</body>
+</html>
